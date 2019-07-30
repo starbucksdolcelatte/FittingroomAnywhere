@@ -1,6 +1,11 @@
-﻿[##_Image|kage@bIy8bf/btqw8CAFUKt/xxMx4Pt2zQDZcvJrhFJPq0/img.jpg|alignCenter|data-filename="슬라이드1.JPG"|_##][##_Image|kage@BanTe/btqw6oKlcL2/ELxDeVJKA5wpZa7quaHphk/img.jpg|alignCenter|data-filename="슬라이드2.JPG"|_##][##_Image|kage@zTtmz/btqw8BBJ1CH/186gifxXupdJ4ix3Jsv5a0/img.jpg|alignCenter|data-filename="슬라이드3.JPG"|_##]
+﻿# 개요
+이 문서는 2019년 07월 30일에 발표한 6조 중간 발표 자료를 다룹니다.<br><br>
 
-저희 서비스는 유저 입장에서 아래와 같은 순서로 진행됩니다. 1. 내 사진 업로드 2. 쇼핑몰에서 옷 선택 3. 선택한 의상을 내 사진에 가상으로 착용한 이미지 생성.    다음 슬라이드에서 그림을 통해 간략히 살펴보겠습니다.
+
+![slide01]('https://github.com/starbucksdolcelatte/FittingroomAnywhere/blob/master/Presentation/img/19.07.30%20%EC%A4%91%EA%B0%84%EB%B0%9C%ED%91%9C/slide00.jpg?raw=true')
+[]()
+
+저희 서비스는 유저 입장에서 아래와 같은 순서로 진행됩니다. 1. 내 사진 업로드 2. 쇼핑몰에서 옷 선택 3. 선택한 의상을 내 사진에 가상으로 착용한 이미지 생성.    다음 슬라이드에서 그림을 통해 간략히 살펴보겠습니다.
 
 [##_Image|kage@d0uRaW/btqw87mP6g0/005chW9hWd5fmCTmb1V6AK/img.jpg|alignCenter|data-filename="슬라이드4.JPG"|_##]
 
