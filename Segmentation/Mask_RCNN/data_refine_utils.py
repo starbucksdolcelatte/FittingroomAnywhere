@@ -1,6 +1,7 @@
 import os
 import json
 import shutil
+import numpy as np
 
 ########################################
 # Image copy&paste by using JSON file
@@ -162,7 +163,25 @@ def is_not_contains_category(anno_dir, category_id):
 ########################################
 # Modify Annotation
 ########################################
-def COCO_to_VIA(anno_dir, image_dir, category_id, save_anno_dir):
+def seg_to_points(segmentation):
+    """
+    segmentation을 all_points_x, all_points_y로 변환
+    """
+    hl = len(segmentation)//2
+    x = [segmentation[x*2] for x in range(hl)]
+    y = [segmentation[x*2+1] for x in range(hl)]
+    return x, y
+
+def lm_to_points(landmarks):
+    """
+    landmarks를 all_points_x, all_points_y로 변환
+    """
+    hl = len(landmarks)//3
+    x = [landmarks[x*3] for x in range(hl)]
+    y = [landmarks[1+x*3] for x in range(hl)]
+    return x, y
+
+def COCO_to_VIA(anno_dir, image_dir, category_id, save_anno_dir, mode="segmentation"):
     """
     DeepFashion2의 COCO anno 를 Mask R-CNN의 VIA anno로 변환.
     특정 카테고리의 하나의 인스턴스에 대해서만 작동함.
@@ -170,6 +189,7 @@ def COCO_to_VIA(anno_dir, image_dir, category_id, save_anno_dir):
     image_dir : DeepFashion2의 image 파일이 있는 directory
     category_id : 추출하고자 하는 category_id
     save_anno_dir : 변환한 annotation을 저장할 directory
+    mode : landmarks or segmentation.
     """
     import skimage
 
@@ -220,8 +240,10 @@ def COCO_to_VIA(anno_dir, image_dir, category_id, save_anno_dir):
                 if(json_data['item2']['category_id']!=category_id):
                     print('Not contains short sleeve top : ', anno)
                 else:
-                    all_points_x = [json_data['item2']['landmarks'][x*3] for x in range(len(json_data['item2']['landmarks'])//3)]
-                    all_points_y = [json_data['item2']['landmarks'][1+x*3] for x in range(len(json_data['item2']['landmarks'])//3)]
+                    if mode == "segmentation":
+                        all_points_x, all_points_y = seg_to_points(json_data['item2']['segmentation'][0])
+                    elif mode == "landmarks":
+                        all_points_x, all_points_y = lm_to_points(json_data['item2']['landmarks'])
                     VIA_dict[img_path] = {
                         "fileref": "",
                         "size": img_size,
@@ -243,8 +265,10 @@ def COCO_to_VIA(anno_dir, image_dir, category_id, save_anno_dir):
             except:
                 print('Not contains short sleeve top : ',anno)
         else:
-            all_points_x = [json_data['item1']['landmarks'][x*3] for x in range(len(json_data['item1']['landmarks'])//3)]
-            all_points_y = [json_data['item1']['landmarks'][1+x*3] for x in range(len(json_data['item1']['landmarks'])//3)]
+            if mode == "segmentation":
+                all_points_x, all_points_y = seg_to_points(json_data['item1']['segmentation'][0])
+            elif mode == "landmarks":
+                all_points_x, all_points_y = lm_to_points(json_data['item1']['landmarks'])
             VIA_dict[img_path] = {
                 "fileref": "",
                 "size": img_size,
