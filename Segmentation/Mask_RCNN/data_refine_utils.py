@@ -102,7 +102,7 @@ def anno_copy_by_img(img_path, from_path_anno, to_path_anno):
 ########################################
 # Extract specified category images
 ########################################
-def is_not_contains_category(anno_dir, category_id):
+def not_contains_category_filenames(anno_dir, category_id):
     """
     DeepFashion2의 annotation 파일들이 있는 디렉토리에서
     최대 item2까지 확인하여 category_id를 포함하지
@@ -158,6 +158,66 @@ def is_not_contains_category(anno_dir, category_id):
             print(anno, '---- item 1 ----', json_data['item1']['category_name'])
     # End of for.
     return not_contains
+
+def contains_category_filenames(anno_dir, category_id):
+    """
+    DeepFashion2의 annotation 파일들이 있는 디렉토리에서
+    최대 item2까지 확인하여 category_id를 포함하는
+    파일명을 출력 및 리스트로 리턴한다.
+    -----------------------------------------
+    anno_dir : path/to/DeepFashion2_annotation
+    category_id(integer) : DeepFashion2 category id below
+        1 : 'short sleeve top'
+        2 : 'long sleeve top'
+        3 : 'short sleeve outwear'
+        4 : 'long sleeve outwear'
+        5 : 'vest'
+        6 : 'sling'
+        7 : 'shorts'
+        8 : 'trousers'
+        9 : 'skirt'
+        10 : 'short sleeve dress'
+        11 : 'long sleeve dress'
+        12 : 'vest dress'
+        13 : 'sling dress'
+    """
+    contains = []
+    MAX_FILES = 10000
+
+    if os.path.exists(anno_dir) == False:
+        print('anno_dir not exists')
+        return
+    if anno_dir[-1] != '/':
+        anno_dir += '/'
+
+    # anno_dir에 있는 anotation 파일명 추출
+    directory = os.listdir(anno_dir)
+    directory = directory[:MAX_FILES]
+
+    for anno in directory:
+        # annotation.json 파일 읽어들이기
+        with open(anno_dir + anno) as json_file:
+            json_data = json.load(json_file)
+        # item1의 카테고리가 category_id가 아니라면,
+        if json_data['item1']['category_id']!=category_id:
+            try:
+                # item2의 카테고리가 category_id인지 보자.
+                # 만약 아니라면, 파일명을 print
+                if(json_data['item2']['category_id']!=category_id):
+                    #print('Not contains short sleeve top : ', anno)
+                    pass
+                else:
+                    print(anno, '---- item 2 ----', json_data['item2']['category_name'])
+                    contains.append([anno, 2])
+
+            except:
+                #print('Not contains short sleeve top : ',anno)
+                pass
+        else:
+            print(anno, '---- item 1 ----', json_data['item1']['category_name'])
+            contains.append([anno, 1])
+    # End of for.
+    return contains
 
 
 ########################################

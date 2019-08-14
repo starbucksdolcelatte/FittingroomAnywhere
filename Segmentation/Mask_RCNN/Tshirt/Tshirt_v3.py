@@ -69,10 +69,10 @@ class TshirtConfig(Config):
     NUM_CLASSES = 1 + 1  # Background + Tshirt
 
     # Number of training steps per epoch
-    STEPS_PER_EPOCH = 100
+    STEPS_PER_EPOCH = 200
 
     # Skip detections with < 90% confidence
-    DETECTION_MIN_CONFIDENCE = 0.9
+    DETECTION_MIN_CONFIDENCE = 0.98
 
 
 ############################################################
@@ -252,10 +252,8 @@ def color_splash(image, mask):
         # 모든 인스턴스를 하나로 간주하기 때문에,
         # 인스턴스가 여러개여도 마스크는 하나의 레이어로 붕괴(통합)될 것
         # We're treating all instances as one, so collapse the mask into one layer
-        #mask = (np.sum(mask, -1, keepdims=True) >= 1) #원래것
-        mask = (np.sum(mask, -1, keepdims=True) < 1)
-        #splash = np.where(mask, image, gray).astype(np.uint8) #원래것
-        splash = np.where(mask, image, 0).astype(np.uint8)
+        mask = (np.sum(mask, -1, keepdims=True) >= 1) #원래것
+        splash = np.where(mask, image, gray).astype(np.uint8) #원래것
     else:
         splash = gray.astype(np.uint8)
     return splash
@@ -285,7 +283,7 @@ def get_foreground_background(image, mask):
         foreground = gray.astype(np.uint8)
         background = gray.astype(np.uint8)
     return foreground, background
-    
+
 
 # 이미지 또는 비디오에서 color splash를 적용하는 함수
 def detect_and_color_splash(model, image_path=None, video_path=None):
@@ -300,10 +298,15 @@ def detect_and_color_splash(model, image_path=None, video_path=None):
         # Detect objects
         r = model.detect([image], verbose=1)[0]
         # Color splash
-        splash = color_splash(image, r['masks'])
+        fore, back = get_foreground_background(image, r['masks'])
+        #splash = color_splash(image, r['masks']) #원래 것
         # Save output
-        file_name = "splash_{:%Y%m%dT%H%M%S}.png".format(datetime.datetime.now())
-        skimage.io.imsave(file_name, splash)
+        #file_name = "splash_{:%Y%m%dT%H%M%S}.png".format(datetime.datetime.now()) #원래 것
+        #skimage.io.imsave(file_name, splash) # 원래 것
+        fore_file_name = "foreground_{:%Y%m%dT%H%M%S}.png".format(datetime.datetime.now())
+        back_file_name = "background_{:%Y%m%dT%H%M%S}.png".format(datetime.datetime.now())
+        skimage.io.imsave(fore_file_name, fore)
+        skimage.io.imsave(back_file_name, back)
     elif video_path:
         import cv2
         # Video capture
