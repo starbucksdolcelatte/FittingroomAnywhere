@@ -202,7 +202,6 @@ def crop_and_pad(image_in, image_out, bbox):
         bbox[1] += 1
 
     y1, x1, y2, x2 = bbox
-    #img = cv2.imread(image_in)
     crop_img = image_in[y1:y2, x1:x2]
 
     # roi adjust (square)
@@ -223,16 +222,15 @@ def crop_and_pad(image_in, image_out, bbox):
     return bbox
 
 # 이미지에서 segmentation 적용하는 함수
-def get_mask_save_segimage(model, image_path, otuput_dir,
-                            fore_file_name, back_file_name, save_back=True):
+def get_mask_save_segimage(model, image_path,
+                            fore_file_path, back_file_path, save_back=True):
     """
     Return mask and save segmented image.
     # input
     model : model(See main.py. model is declared by modellib.MaskRCNN(...))
     image_path : input image path
-    output_dir : output image directory to save output image
-    fore_file_name : foreground file name
-    back_file_name : background file name
+    fore_file_path : foreground file path
+    back_file_path : background file path
     save_back : boolean. whether save background image or not.
                 usually set True on user image, and False on style image.
     # return
@@ -252,14 +250,14 @@ def get_mask_save_segimage(model, image_path, otuput_dir,
 
     if save_back :
         # Save output background
-        skimage.io.imsave(otuput_dir+back_file_name, back)
+        skimage.io.imsave(back_file_path, back)
 
     # crop and pad foreground image : to make it square
     # and save output in function
-    bbox = crop_and_pad(fore, otuput_dir+fore_file_name, r['rois'][0])
+    bbox = crop_and_pad(fore, fore_file_path, r['rois'][0])
 
-    print("Foreground Saved to ", otuput_dir+fore_file_name)
-    print("Background Saved to ", otuput_dir+back_file_name)
+    print("Foreground Saved to ", fore_file_path)
+    print("Background Saved to ", back_file_path)
     return r['masks'], bbox
 
 def user_style_seg(user_input, style_input, model, weight, output_dir):
@@ -273,17 +271,17 @@ def user_style_seg(user_input, style_input, model, weight, output_dir):
     weight : weight path
     output_dir : output image directory
     # return
-    user_fore: user_foreground image filename
-    user_back: user_background image filename
-    style_fore: style_foreground image filename
+    user_fore: user_foreground image path
+    user_back: user_background image path
+    style_fore: style_foreground image path
     user_mask : [H, W, N] instance binary masks
     user_bbox : [y1, x1, y2, x2]
     """
     # filenames
-    user_fore = "user_foreground_{:%Y%m%dT%H%M%S}.jpg".format(datetime.datetime.now())
-    user_back = "user_background_{:%Y%m%dT%H%M%S}.jpg".format(datetime.datetime.now())
-    style_fore = "style_foreground_{:%Y%m%dT%H%M%S}.jpg".format(datetime.datetime.now())
-    style_back = "style_background_{:%Y%m%dT%H%M%S}.jpg".format(datetime.datetime.now())
+    user_fore = output_dir+"user_foreground_{:%Y%m%dT%H%M%S}.jpg".format(datetime.datetime.now())
+    user_back = output_dir+"user_background_{:%Y%m%dT%H%M%S}.jpg".format(datetime.datetime.now())
+    style_fore = output_dir+"style_foreground_{:%Y%m%dT%H%M%S}.jpg".format(datetime.datetime.now())
+    style_back = output_dir+"style_background_{:%Y%m%dT%H%M%S}.jpg".format(datetime.datetime.now())
 
     # get mask and save segmented images (foreground, background)
     user_mask, user_bbox = get_mask_save_segimage(model, user_input, output_dir,
@@ -292,3 +290,53 @@ def user_style_seg(user_input, style_input, model, weight, output_dir):
                                         style_fore, style_back, save_back=False)
 
     return user_fore, user_back, style_fore, user_mask, user_bbox
+
+
+def image_rendering(tshirt, background, user_mask, user_bbox):
+    """
+    image rendering : generated tshirt image on background image.
+    tshirt image will be resized.
+
+    # input
+    tshirt : generated tshirt image path
+    background : background image path
+    user_mask : user image mask
+    user_bbox : user image bbox [y1, x1, y2, x2]
+    """
+    # tshirt image size maybe 256x256
+    t = skimage.io.imread(tshirt)
+    bg = skimage.io.imread(background)
+    bg_h, bg_w, _ = bg.shape
+
+    y1, x1, y2, x2 = user_bbox
+    # roi adjust (rect)
+    w = x2 - x1
+    h = y2 - y1
+
+    if w >= h:
+        p = int((w - h)/2)
+        # 1) Resize tshirt image to original resolution
+        #    because tshirt image had been resized when Cycle GAN done.
+        t_resized = skimage.resize(t, (w, w))
+        # 2) Crop tshirt image to bbox size
+        #    because tshirt image had been padded when segmentation done.
+        t_crop = t_resized[p:p+h, :]
+    else:
+        p = int((h - w)/2)
+        # 1) Resize tshirt image to original resolution
+        #    because tshirt image had been resized when Cycle GAN done.
+        t_resized = skimage.resize(t, (h, h))
+        # 2) Crop tshirt image to bbox size
+        #    because tshirt image had been padded when segmentation done.
+        t_crop = t_resized[:, p:p+w]
+
+    # 3) Pad tshirt to original size
+    #    because tshirt image had been cropped when segmentation done.
+    # cv2.copyMakeBorder(src, top, bottom, left, right, borderType)
+    t_padding= cv2.copyMakeBorder(t_crop, y1,bg_h-y2,x1,bg_w-x2, cv2.BORDER_CONSTANT,value=[0,0,0])
+
+    # 1. resize generated tshirt image
+
+    # 2. pad resized tshirt image
+    # 3. rendering
+    # 4. image save
