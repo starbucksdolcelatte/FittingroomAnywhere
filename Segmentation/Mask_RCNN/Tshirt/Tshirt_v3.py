@@ -340,7 +340,9 @@ def detect_and_color_splash(model, image_path=None, video_path=None):
                 vwriter.write(splash)
                 count += 1
         vwriter.release()
-    print("Saved to ", file_name)
+    #print("Saved to ", file_name)
+    print("Foreground Saved to ", fore_file_name)
+    print("Background Saved to ", back_file_name)
 
 
 ############################################################
