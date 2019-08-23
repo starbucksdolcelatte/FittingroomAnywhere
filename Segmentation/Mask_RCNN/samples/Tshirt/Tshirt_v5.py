@@ -5,26 +5,9 @@ Train on the toy Tshirt dataset and implement color splash effect.
 Copyright (c) 2018 Matterport, Inc.
 Licensed under the MIT License (see LICENSE for details)
 Written by Waleed Abdulla
-
 ------------------------------------------------------------
-
-Usage: import the module (see Jupyter notebooks for examples), or run from
-       the command line as such:
-
-    # Train a new model starting from pre-trained COCO weights
-    python3 Tshirt.py train --dataset=/path/to/Tshirt/dataset --weights=coco
-
-    # Resume training a model that you had trained earlier
-    python3 Tshirt.py train --dataset=/path/to/Tshirt/dataset --weights=last
-
-    # Train a new model starting from ImageNet weights
-    python3 Tshirt.py train --dataset=/path/to/Tshirt/dataset --weights=imagenet
-
-    # Apply color splash to an image
-    python3 Tshirt.py splash --weights=/path/to/weights/file.h5 --image=<URL or path to file>
-
-    # Apply color splash to video using the last weights you trained
-    python3 Tshirt.py splash --weights=last --video=<URL or path to file>
+Modified by Seoyoon Park
+------------------------------------------------------------
 """
 
 import os
@@ -130,34 +113,6 @@ class TshirtDataset(utils.Dataset):
             super(self.__class__, self).image_reference(image_id)
 
 ########## End of class TshirtDataset(utils.Dataset). ##########
-
-# 컬러 스플레쉬 효과를 사진에 적용하는 함수
-def color_splash(image, mask):
-    """Apply color splash effect.
-    image: RGB image [height, width, 3]
-    mask: instance segmentation mask [height, width, instance count]
-
-    Returns result image.
-    """
-    # 먼저 흑백 사진 카피를 만듭니다.
-    # 이 흑백사진은 여전히 3 RGB 채널을 가지고 있지만요.
-    # Make a grayscale copy of the image. The grayscale copy still
-    # has 3 RGB channels, though.
-    gray = skimage.color.gray2rgb(skimage.color.rgb2gray(image)) * 255
-
-    # 마스크를 이용해, 오리지날 컬러 이미지로부터 컬러 픽셀을 복사
-    # Copy color pixels from the original color image where mask is set
-    if mask.shape[-1] > 0: # instance_count 가 0보다 크다면
-        # 이 함수에서는 컬러 스플래쉬가 목적이라서
-        # 모든 인스턴스를 하나로 간주하기 때문에,
-        # 인스턴스가 여러개여도 마스크는 하나의 레이어로 붕괴(통합)될 것
-        # We're treating all instances as one, so collapse the mask into one layer
-        mask = (np.sum(mask, -1, keepdims=True) >= 1) #원래것
-        splash = np.where(mask, image, gray).astype(np.uint8) #원래것
-    else:
-        splash = gray.astype(np.uint8)
-    return splash
-
 def get_foreground_background(image, mask):
     """Get foreground and background image by applying mask on image.
     image: RGB image [height, width, 3]
@@ -207,8 +162,6 @@ def crop_and_pad(image_in, image_out, bbox):
     # roi adjust (square)
     w = x2 - x1
     h = y2 - y1
-    print(y1, x1, y2, x2)
-    print(w, h)
 
     if w >= h:
         p = int((w - h)/2)
@@ -284,15 +237,15 @@ def user_style_seg(user_input, style_input, model, weight, output_dir):
     style_back = output_dir+"style_background_{:%Y%m%dT%H%M%S}.jpg".format(datetime.datetime.now())
 
     # get mask and save segmented images (foreground, background)
-    user_mask, user_bbox = get_mask_save_segimage(model, user_input, output_dir,
+    user_mask, user_bbox = get_mask_save_segimage(model, user_input,
                                         user_fore, user_back, save_back=True)
-    _, _ = get_mask_save_segimage(model, style_input, output_dir,
+    _, _ = get_mask_save_segimage(model, style_input,
                                         style_fore, style_back, save_back=False)
 
     return user_fore, user_back, style_fore, user_mask, user_bbox
 
 
-def image_rendering(tshirt, background, user_mask, user_bbox):
+def image_rendering(tshirt, background, user_bbox, user_mask, output_dir):
     """
     image rendering : generated tshirt image on background image.
     tshirt image will be resized.
@@ -300,14 +253,20 @@ def image_rendering(tshirt, background, user_mask, user_bbox):
     # input
     tshirt : generated tshirt image path
     background : background image path
-    user_mask : user image mask
     user_bbox : user image bbox [y1, x1, y2, x2]
+    user_mask : user mask from user image segmentation
+    output_dir : output path to save final output image
     """
     # tshirt image size maybe 256x256
-    t = skimage.io.imread(tshirt)
-    bg = skimage.io.imread(background)
+    #t = skimage.io.imread(tshirt)
+    #bg = skimage.io.imread(background)
+    t = cv2.imread(tshirt, cv2.IMREAD_COLOR)
+    bg = cv2.imread(background, cv2.IMREAD_COLOR)
     bg_h, bg_w, _ = bg.shape
 
+    """
+    # 1. Resize, Crop and Pad generated tshirt image
+    """
     y1, x1, y2, x2 = user_bbox
     # roi adjust (rect)
     w = x2 - x1
@@ -317,7 +276,7 @@ def image_rendering(tshirt, background, user_mask, user_bbox):
         p = int((w - h)/2)
         # 1) Resize tshirt image to original resolution
         #    because tshirt image had been resized when Cycle GAN done.
-        t_resized = skimage.resize(t, (w, w))
+        t_resized = skimage.transform.resize(t, (w, w))
         # 2) Crop tshirt image to bbox size
         #    because tshirt image had been padded when segmentation done.
         t_crop = t_resized[p:p+h, :]
@@ -325,18 +284,48 @@ def image_rendering(tshirt, background, user_mask, user_bbox):
         p = int((h - w)/2)
         # 1) Resize tshirt image to original resolution
         #    because tshirt image had been resized when Cycle GAN done.
-        t_resized = skimage.resize(t, (h, h))
+        t_resized = skimage.transform.resize(t, (h, h))
+        # temp
+        print('t_resized')
+        print(t_resized.shape)
         # 2) Crop tshirt image to bbox size
         #    because tshirt image had been padded when segmentation done.
         t_crop = t_resized[:, p:p+w]
+        # temp
+        print('t_crop')
+        print(t_crop.shape)
+
 
     # 3) Pad tshirt to original size
     #    because tshirt image had been cropped when segmentation done.
-    # cv2.copyMakeBorder(src, top, bottom, left, right, borderType)
-    t_padding= cv2.copyMakeBorder(t_crop, y1,bg_h-y2,x1,bg_w-x2, cv2.BORDER_CONSTANT,value=[0,0,0])
+    # cv2.copyMakeBorder(src, top, bottom, left, ri ght, borderType)
+    t_padding= cv2.copyMakeBorder(t_crop, y1,bg_h-y2,x1,bg_w-x2, cv2.BORDER_CONSTANT, value=[255,255,255])
 
-    # 1. resize generated tshirt image
+    print('t_padding')
+    print(t_padding.shape)
+    print(t_padding)
 
-    # 2. pad resized tshirt image
-    # 3. rendering
-    # 4. image save
+    out_path = output_dir+"final_output_tpadding_0.jpg".format(datetime.datetime.now())
+    #cv2.imwrite(out_path, cv2.cvtColor(t_padding, cv2.COLOR_RGB2BGR))
+    cv2.imwrite(out_path, t_padding)
+
+
+    print('original_user')
+    print(bg.shape)
+
+
+    """
+    # 2. rendering
+    """
+    _, back = get_foreground_background(bg, user_mask)
+    fore, _ = get_foreground_background(t_padding, user_mask)
+    out_path = output_dir+"final_output_tpadding.jpg".format(datetime.datetime.now())
+    cv2.imwrite(out_path, cv2.cvtColor(fore, cv2.COLOR_RGB2BGR))
+
+    out = np.where(back==[0,0,0], [0,255,255], [0,0,255]).astype(np.uint8)
+
+    """
+    # 3. image save
+    """
+    out_path = output_dir+"final_output_{:%Y%m%dT%H%M%S}.jpg".format(datetime.datetime.now())
+    cv2.imwrite(out_path, cv2.cvtColor(out, cv2.COLOR_RGB2BGR))

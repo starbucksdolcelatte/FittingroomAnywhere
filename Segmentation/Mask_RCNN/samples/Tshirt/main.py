@@ -2,7 +2,7 @@ import Tshirt_v5 as ts
 import os
 import sys
 import cv2
-
+import numpy as np
 """
 MRCNN_WEIGHT = 'path/to/mrcnn/weight'
 INPUT_USER_IMAGE = 'path/to/user/image'
@@ -26,6 +26,7 @@ from mrcnn import model as modellib, utils
 DEFAULT_LOGS_DIR = os.path.join(ROOT_DIR, "logs")
 
 def main():
+    '''
     # TshirtConfig 클래스를 상속받는 InferenceConfig 라는 클래스를 선언한다.
     class InferenceConfig(ts.TshirtConfig):
         # Set batch size to 1 since we'll be running inference on
@@ -39,6 +40,19 @@ def main():
     model.load_weights(MRCNN_WEIGHT, by_name=True)
     user_fore, user_back, style_fore, user_mask, user_bbox = ts.user_style_seg(INPUT_USER_IMAGE, INPUT_STYLE_IMAGE, model, MRCNN_WEIGHT, OUTPUT_DIR)
 
+    # temp function; cannot be used. just usage example
+    #generated_tshirt = CycleGAN(user_fore, style_fore, weight, ...)
+
+    np.save(OUTPUT_DIR+'user_bbox.npy', user_bbox) # .npy extension is added if not given
+    np.save(OUTPUT_DIR+'user_mask.npy', user_mask) # .npy extension is added if not given
+    '''
+    user_bbox = np.load(OUTPUT_DIR+'user_bbox.npy')
+    user_mask = np.load(OUTPUT_DIR+'user_mask.npy')
+
+    # You can use this function.
+    user_back = OUTPUT_DIR+'user_background_20190823T185033.jpg'
+    #user_bbox = [182, 129, 536, 449]
+    ts.image_rendering(OUTPUT_DIR+'fakeA.jpg', user_back, user_bbox, user_mask, OUTPUT_DIR)
 
 
 if __name__ == '__main__':
