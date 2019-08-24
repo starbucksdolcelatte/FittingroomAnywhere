@@ -82,4 +82,8 @@ right = 600 - bbox의 x2 (449)
 
 
 ## 9. 코드
-`main.py`와 `Tshirt_v5.py`를 보면 된다.
+`main.py`와 `Tshirt_v5.py`를 보면 된다.<br><br><br>
+------------------
+Copyright (c) 2019 Seoyoon Park<br>
+Licensed under the MIT License (see LICENSE for details)<br>
+Written by Seoyoon Park<br>
