@@ -4,11 +4,11 @@ import sys
 import cv2
 import numpy as np
 """
+ROOT_DIR = 'path/to/Mask_RCNN/'
 MRCNN_WEIGHT = 'path/to/mrcnn/weight'
 INPUT_USER_IMAGE = 'path/to/user/image'
 INPUT_STYLE_IMAGE = 'path/to/style/image'
 OUTPUT_DIR = 'path/to/output/image/dir/'
-ROOT_DIR = 'path/to/output/Mask_RCNN/dir/'
 """
 ROOT_DIR = 'C:/Users/chief/FittingroomAnywhere/segmentation/Mask_RCNN/'
 MRCNN_WEIGHT = ROOT_DIR + 'logs/mask_rcnn_tshirt_0028.h5'
@@ -26,8 +26,9 @@ from mrcnn import model as modellib, utils
 DEFAULT_LOGS_DIR = os.path.join(ROOT_DIR, "logs")
 
 def main():
-    '''
-    # TshirtConfig 클래스를 상속받는 InferenceConfig 라는 클래스를 선언한다.
+    #######################################
+    #      Mask R-cNN(segmentation)       #
+    #######################################
     class InferenceConfig(ts.TshirtConfig):
         # Set batch size to 1 since we'll be running inference on
         # one image at a time. Batch size = GPU_COUNT * IMAGES_PER_GPU
@@ -40,26 +41,18 @@ def main():
     model.load_weights(MRCNN_WEIGHT, by_name=True)
     user_fore, user_back, style_fore, user_mask, user_bbox = ts.user_style_seg(INPUT_USER_IMAGE, INPUT_STYLE_IMAGE, model, MRCNN_WEIGHT, OUTPUT_DIR)
 
+
+    #######################################
+    #               CyclaGAN              #
+    #######################################
     # temp function; cannot be used. just usage example
-    #generated_tshirt = CycleGAN(user_fore, style_fore, weight, ...)
+    # generated_tshirt = CycleGAN(user_fore, style_fore, weight, ...)
 
-    np.save(OUTPUT_DIR+'user_bbox.npy', user_bbox) # .npy extension is added if not given
-    np.save(OUTPUT_DIR+'user_mask.npy', user_mask) # .npy extension is added if not given
-    '''
-    user_bbox = np.load(OUTPUT_DIR+'user_bbox.npy')
-    user_mask = np.load(OUTPUT_DIR+'user_mask.npy')
 
-    # draw bbox on user image
-    y1, x1, y2, x2 = user_bbox
-    input_user = cv2.imread(INPUT_USER_IMAGE, cv2.IMREAD_COLOR)
-    img = cv2.rectangle(input_user, (x1, y1), (x2, y2), (0,255,0), 3)
-    cv2.imwrite(OUTPUT_DIR+'user_bbox.jpg', img)
-
-    # You can use this function.
-    user_back = OUTPUT_DIR+'user_background.jpg'
-    #user_bbox = [182, 129, 536, 449] [y1, x1, y2, x2]
-
-    # image_rendering(tshirt, background, user_bbox, user_mask, output_dir)
+    #######################################
+    #           Image Rendering           #
+    #######################################
+    # Usage: image_rendering(generated_tshirt_path, background, user_bbox, user_mask, output_dir)
     ts.image_rendering(OUTPUT_DIR+'fakeA.jpg', user_back, user_bbox, user_mask, OUTPUT_DIR)
 
 

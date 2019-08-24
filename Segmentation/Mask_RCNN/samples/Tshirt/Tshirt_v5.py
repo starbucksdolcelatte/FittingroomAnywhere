@@ -272,40 +272,14 @@ def image_rendering(tshirt, background, user_bbox, user_mask, output_dir):
         # 1) Resize tshirt image to original resolution
         #    because tshirt image had been resized when Cycle GAN done.
         t_resized = cv2.resize(t, (h, h), interpolation = cv2.INTER_AREA)
-
-        # temp
-        out_path = output_dir+"final_output_t_resized.jpg"
-        cv2.imwrite(out_path, cv2.cvtColor(t_resized, cv2.COLOR_RGB2BGR))
-        print('t_resized')
-        print(t_resized.shape)
-
         # 2) Crop tshirt image to bbox size
         #    because tshirt image had been padded when segmentation done.
         t_crop = t_resized[:, p:p+w]
-
-        # temp
-        out_path = output_dir+"final_output_t_crop.jpg"
-        cv2.imwrite(out_path, cv2.cvtColor(t_crop, cv2.COLOR_RGB2BGR))
-        print('t_crop')
-        print(t_crop.shape)
-
 
     # 3) Pad tshirt to original size
     #    because tshirt image had been cropped when segmentation done.
     # cv2.copyMakeBorder(src, top, bottom, left, ri ght, borderType)
     t_padding= cv2.copyMakeBorder(t_crop, y1,bg_h-y2,x1,bg_w-x2, cv2.BORDER_CONSTANT, value=[255,255,255])
-
-    print('t_padding')
-    print(t_padding.shape)
-    print(t_padding)
-
-    out_path = output_dir+"final_output_tpadding_0.jpg"
-    #cv2.imwrite(out_path, cv2.cvtColor(t_padding, cv2.COLOR_RGB2BGR))
-    cv2.imwrite(out_path, t_padding)
-
-    print('original_user')
-    print(bg.shape)
-
 
     """
     # 2. rendering
@@ -315,16 +289,6 @@ def image_rendering(tshirt, background, user_bbox, user_mask, output_dir):
     fore = cv2.cvtColor(fore, cv2.COLOR_RGB2BGR)
     # 이미지 합성
     out = np.where(back==[0,0,0], fore, back).astype(np.uint8)
-
-    #temp
-    temp = np.where(back==[0,0,0], [0,255,255], [0,0,255]).astype(np.uint8)
-    out_path = output_dir+"final_output_mask.jpg".format(datetime.datetime.now())
-    cv2.imwrite(out_path, temp)
-    out_path = output_dir+"final_output_fore.jpg".format(datetime.datetime.now())
-    cv2.imwrite(out_path, fore)
-    out_path = output_dir+"final_output_back.jpg".format(datetime.datetime.now())
-    cv2.imwrite(out_path, back)
-
 
     """
     # 3. image save
