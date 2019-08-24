@@ -64,11 +64,6 @@ class TshirtConfig(Config):
 
 # BalloonDataset -> TshirtDataset
 class TshirtDataset(utils.Dataset):
-    # 이미지에 대해 인스턴스 마스크를 생성하는 함수
-    # 리턴 :
-    #      (1) masks : [이미지 높이, 이미지 너비, 인스턴스 수] shape의 bool array.
-    #          인스턴스 하나 당 하나의 마스크
-    #      (2) class_ids : 인스턴스 마스크의 클래스 아이디로 이루어진 1D array
     def load_mask(self, image_id):
         """Generate instance masks for an image.
        Returns:
@@ -95,14 +90,11 @@ class TshirtDataset(utils.Dataset):
             rr, cc = skimage.draw.polygon(p['all_points_y'], p['all_points_x'])
             mask[rr, cc, i] = 1
 
-        # mask, 각 인스턴스의 클래스 ID에 대한 array (shape=[instance_count])를 리턴한다.
-        # 우리는 오직 하나의 클래스 아이디만 가지고 있기 때문에, 1로 이루어진 어레이를 리턴할 것
         # Return mask, and array of class IDs of each instance. Since we have
         # one class ID only, we return an array of 1s
         return mask.astype(np.bool), np.ones([mask.shape[-1]], dtype=np.int32)
 
 
-    # 이미지의 path를 리턴한다.
     def image_reference(self, image_id):
         """Return the path of the image."""
         # self.image_info 부분은 mrcnn/utils.py의 add_image() 함수를 참고하라.
@@ -121,13 +113,8 @@ def get_foreground_background(image, mask):
     Returns foreground image, background image.
     """
 
-    # 마스크를 이용해, 오리지날 컬러 이미지로부터 컬러 픽셀을 복사
     # Copy color pixels from the original color image where mask is set
     if mask.shape[-1] > 0: # instance_count 가 0보다 크다면
-        # 이 함수에서는 컬러 스플래쉬가 목적이라서
-        # 모든 인스턴스를 하나로 간주하기 때문에,
-        # 인스턴스가 여러개여도 마스크는 하나의 레이어로 붕괴(통합)될 것
-        # We're treating all instances as one, so collapse the mask into one layer
         fore_mask = (np.sum(mask, -1, keepdims=True) >= 1)
         back_mask = (np.sum(mask, -1, keepdims=True) < 1)
 
@@ -265,7 +252,7 @@ def image_rendering(tshirt, background, user_bbox, user_mask, output_dir):
     bg_h, bg_w, _ = bg.shape
 
     """
-    # 1. Resize, Crop and Pad generated tshirt image
+    # 1. Resize, Crop and Pad on generated tshirt image to restore
     """
     y1, x1, y2, x2 = user_bbox
     # roi adjust (rect)
@@ -276,7 +263,7 @@ def image_rendering(tshirt, background, user_bbox, user_mask, output_dir):
         p = int((w - h)/2)
         # 1) Resize tshirt image to original resolution
         #    because tshirt image had been resized when Cycle GAN done.
-        t_resized = skimage.transform.resize(t, (w, w))
+        t_resized = cv2.resize(t, (h, h), interpolation = cv2.INTER_AREA)
         # 2) Crop tshirt image to bbox size
         #    because tshirt image had been padded when segmentation done.
         t_crop = t_resized[p:p+h, :]
@@ -285,18 +272,20 @@ def image_rendering(tshirt, background, user_bbox, user_mask, output_dir):
         # 1) Resize tshirt image to original resolution
         #    because tshirt image had been resized when Cycle GAN done.
         t_resized = cv2.resize(t, (h, h), interpolation = cv2.INTER_AREA)
-        out_path = output_dir+"final_output_t_resized.jpg"
-        cv2.imwrite(out_path, cv2.cvtColor(t_resized, cv2.COLOR_RGB2BGR))
 
         # temp
+        out_path = output_dir+"final_output_t_resized.jpg"
+        cv2.imwrite(out_path, cv2.cvtColor(t_resized, cv2.COLOR_RGB2BGR))
         print('t_resized')
         print(t_resized.shape)
+
         # 2) Crop tshirt image to bbox size
         #    because tshirt image had been padded when segmentation done.
         t_crop = t_resized[:, p:p+w]
+
+        # temp
         out_path = output_dir+"final_output_t_crop.jpg"
         cv2.imwrite(out_path, cv2.cvtColor(t_crop, cv2.COLOR_RGB2BGR))
-        # temp
         print('t_crop')
         print(t_crop.shape)
 
@@ -314,7 +303,6 @@ def image_rendering(tshirt, background, user_bbox, user_mask, output_dir):
     #cv2.imwrite(out_path, cv2.cvtColor(t_padding, cv2.COLOR_RGB2BGR))
     cv2.imwrite(out_path, t_padding)
 
-
     print('original_user')
     print(bg.shape)
 
@@ -325,10 +313,18 @@ def image_rendering(tshirt, background, user_bbox, user_mask, output_dir):
     _, back = get_foreground_background(bg, user_mask)
     fore, _ = get_foreground_background(t_padding, user_mask)
     fore = cv2.cvtColor(fore, cv2.COLOR_RGB2BGR)
+    # 이미지 합성
+    out = np.where(back==[0,0,0], fore, back).astype(np.uint8)
+
+    #temp
+    temp = np.where(back==[0,0,0], [0,255,255], [0,0,255]).astype(np.uint8)
+    out_path = output_dir+"final_output_mask.jpg".format(datetime.datetime.now())
+    cv2.imwrite(out_path, temp)
     out_path = output_dir+"final_output_fore.jpg".format(datetime.datetime.now())
     cv2.imwrite(out_path, fore)
+    out_path = output_dir+"final_output_back.jpg".format(datetime.datetime.now())
+    cv2.imwrite(out_path, back)
 
-    out = np.where(back==[0,0,0], fore, back).astype(np.uint8)
 
     """
     # 3. image save

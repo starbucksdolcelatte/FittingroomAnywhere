@@ -49,9 +49,17 @@ def main():
     user_bbox = np.load(OUTPUT_DIR+'user_bbox.npy')
     user_mask = np.load(OUTPUT_DIR+'user_mask.npy')
 
+    # draw bbox on user image
+    y1, x1, y2, x2 = user_bbox
+    input_user = cv2.imread(INPUT_USER_IMAGE, cv2.IMREAD_COLOR)
+    img = cv2.rectangle(input_user, (x1, y1), (x2, y2), (0,255,0), 3)
+    cv2.imwrite(OUTPUT_DIR+'user_bbox.jpg', img)
+
     # You can use this function.
-    user_back = OUTPUT_DIR+'user_background_20190823T185033.jpg'
-    #user_bbox = [182, 129, 536, 449]
+    user_back = OUTPUT_DIR+'user_background.jpg'
+    #user_bbox = [182, 129, 536, 449] [y1, x1, y2, x2]
+
+    # image_rendering(tshirt, background, user_bbox, user_mask, output_dir)
     ts.image_rendering(OUTPUT_DIR+'fakeA.jpg', user_back, user_bbox, user_mask, OUTPUT_DIR)
 
 
